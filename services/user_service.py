@@ -5,6 +5,7 @@ from typing import Optional
 from db import UserRepo
 from db.models import User
 from utils.cache import UserCache
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ class UserService:
 
         user, is_new = await UserRepo.create(user_id, username)
         if user and is_new:
-            from config.settings import settings
             until = datetime.now() + timedelta(days=settings.PREMIUM_TRIAL_DAYS)
             await UserRepo.set_premium(user_id, until.strftime("%Y-%m-%d"))
             user.is_premium = True
