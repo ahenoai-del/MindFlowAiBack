@@ -1,0 +1,3003 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MindFlow AI</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --glass-blur: blur(20px);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --accent: #8b5cf6;
+            --accent-glow: 0 0 30px rgba(139, 92, 246, 0.5);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --premium: linear-gradient(135deg, #fbbf24, #f59e0b);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Mesh Background */
+        .mesh-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(245, 158, 11, 0.05) 0%, transparent 70%);
+        }
+
+        /* Floating Orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.6;
+            animation: orbFloat 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        .orb-1 { width: 400px; height: 400px; background: var(--accent); top: -100px; left: -100px; animation-delay: 0s; }
+        .orb-2 { width: 300px; height: 300px; background: var(--success); bottom: -50px; right: -50px; animation-delay: -5s; }
+        .orb-3 { width: 200px; height: 200px; background: var(--warning); top: 50%; left: 50%; animation-delay: -10s; }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(50px, -30px) scale(1.1); }
+            50% { transform: translate(-30px, 50px) scale(0.9); }
+            75% { transform: translate(30px, 30px) scale(1.05); }
+        }
+
+        /* Noise Texture */
+        .noise {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        .app { max-width: 480px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
+
+        /* Glass Card */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--accent-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '🧠';
+            font-size: 26px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%);
+            animation: shine 3s ease-in-out infinite;
+        }
+
+        @keyframes shine {
+            0%, 100% { transform: translateX(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        .logo-text h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.8));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text span {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .level-badge {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            padding: 8px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .level-badge span:first-child { font-size: 16px; }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .icon-btn:hover {
+            border-color: var(--accent);
+            background: var(--glass);
+        }
+        
+        .icon-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            padding: 20px 12px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover::before { opacity: 1; }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        /* XP Progress Card */
+        .xp-card {
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .xp-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .level-circle {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 900;
+            box-shadow: var(--accent-glow);
+            position: relative;
+        }
+
+        .level-circle::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: rgba(255,255,255,0.3);
+            animation: spin 3s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .xp-info h3 { font-size: 16px; font-weight: 700; }
+        .xp-info span { font-size: 12px; color: var(--text-secondary); }
+
+        .xp-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .xp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success), var(--warning));
+            background-size: 200% 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            animation: gradient 3s ease infinite;
+        }
+
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Navigation Pills */
+        .nav-pills {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+
+        .nav-pills::-webkit-scrollbar { display: none; }
+
+        .nav-pill {
+            padding: 12px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-pill:hover { border-color: rgba(255,255,255,0.2); }
+
+        .nav-pill.active {
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: var(--accent-glow);
+        }
+
+        /* Templates */
+        .templates-section { margin-bottom: 16px; }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .templates-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+
+        .templates-scroll::-webkit-scrollbar { display: none; }
+
+        .template-chip {
+            padding: 12px 18px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .template-chip:hover {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .template-add {
+            border-style: dashed;
+            color: var(--text-muted);
+        }
+
+        /* Task Cards */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-card {
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .task-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--accent);
+            border-radius: 4px 0 0 4px;
+            transition: width 0.3s;
+        }
+
+        .task-card:hover::before { width: 6px; }
+
+        .task-card:hover {
+            transform: translateX(4px);
+            border-color: var(--accent);
+        }
+        
+        .task-card:active {
+            transform: translateX(2px) scale(0.99);
+        }
+
+        .task-card.completed { opacity: 0.5; }
+        .task-card.completed .task-title {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .task-top {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .task-check {
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .task-check:hover {
+            background: var(--accent);
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        .task-check.done {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+        }
+
+        .task-info { flex: 1; min-width: 0; }
+
+        .task-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .task-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .task-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 12px;
+        }
+
+        .task-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .task-tag {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent);
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-meta-item {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            color: #fff;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: var(--accent-glow), 0 10px 40px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+
+        .fab:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: var(--accent-glow), 0 15px 50px rgba(0,0,0,0.4);
+        }
+
+        /* Sections */
+        .section { display: none; animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Calendar */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .calendar-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .calendar-nav-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .calendar-nav-btn:hover { border-color: var(--accent); }
+
+        .calendar-month {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .calendar-day-name {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 8px 0;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .calendar-day:hover { border-color: var(--accent); }
+
+        .calendar-day.today {
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .calendar-day.has-tasks::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+
+        .calendar-day.today.has-tasks::after { background: #fff; }
+
+        .calendar-day-num {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* AI Chat */
+        .ai-card {
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .ai-input-wrap {
+            display: flex;
+            gap: 12px;
+        }
+
+        .ai-input {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-family: inherit;
+            resize: none;
+            min-height: 50px;
+        }
+
+        .ai-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .ai-input::placeholder { color: var(--text-muted); }
+
+        .ai-send {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border: none;
+            border-radius: 16px;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ai-send:hover {
+            transform: scale(1.05);
+            box-shadow: var(--accent-glow);
+        }
+
+        .ai-messages {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--glass-border) transparent;
+        }
+
+        .ai-msg {
+            margin-bottom: 14px;
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .ai-msg.user { flex-direction: row-reverse; }
+
+        .ai-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .ai-msg.user .ai-avatar {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+        }
+
+        .ai-bubble {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 12px 16px;
+            max-width: 75%;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .ai-msg.user .ai-bubble {
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        /* Analytics */
+        .analytics-card {
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .analytics-title { font-size: 15px; font-weight: 700; }
+
+        /* Settings */
+        .settings-card {
+            padding: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .settings-card:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .settings-info h4 { font-size: 14px; font-weight: 600; }
+        .settings-info span { font-size: 12px; color: var(--text-muted); }
+
+        .settings-arrow {
+            font-size: 18px;
+            color: var(--text-muted);
+            transition: all 0.3s;
+        }
+
+        .settings-card:hover .settings-arrow {
+            color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        /* Premium Badge */
+        .premium-badge {
+            background: var(--premium);
+            padding: 8px 14px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .premium-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: linear-gradient(180deg, rgba(30, 30, 50, 0.98), rgba(15, 15, 35, 0.98));
+            width: 100%;
+            max-width: 480px;
+            border-radius: 32px 32px 0 0;
+            padding: 24px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--glass-border);
+            border-bottom: none;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(100px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover { border-color: var(--danger); }
+
+        .form-group { margin-bottom: 18px; }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 14px 8px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .option-btn:hover { border-color: var(--accent); }
+        
+        .option-btn:active {
+            transform: scale(0.98);
+        }
+
+        .option-btn.selected {
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--accent-glow);
+        }
+        
+        .btn:active {
+            transform: scale(0.98) translateY(0);
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn-row .btn { flex: 1; }
+
+        /* Theme Grid */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .theme-option {
+            padding: 16px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .theme-option:hover { border-color: var(--accent); }
+
+        .theme-option.selected {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.15);
+        }
+
+        .theme-option.locked {
+            opacity: 0.6;
+        }
+
+        .theme-option.locked::before {
+            content: '🔒';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 14px;
+        }
+
+        .theme-preview {
+            width: 100%;
+            height: 40px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .theme-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .theme-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: var(--premium);
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        /* Premium Modal */
+        .premium-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .premium-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--premium);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 16px;
+            box-shadow: 0 0 40px rgba(251, 191, 36, 0.4);
+        }
+
+        .premium-title {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 6px;
+        }
+
+        .premium-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .premium-features {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .premium-feature {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            background: var(--glass-bg);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .premium-feature-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .premium-feature-text h4 { font-size: 14px; font-weight: 600; }
+        .premium-feature-text p { font-size: 11px; color: var(--text-muted); }
+
+        .premium-plans {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .premium-plan {
+            padding: 20px 16px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .premium-plan:hover { border-color: rgba(251, 191, 36, 0.5); }
+
+        .premium-plan.selected {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .premium-plan-price {
+            font-size: 28px;
+            font-weight: 900;
+        }
+
+        .premium-plan-period {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .premium-plan-save {
+            margin-top: 10px;
+            padding: 4px 12px;
+            background: var(--success);
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #000;
+            display: inline-block;
+        }
+
+        .premium-btn {
+            background: var(--premium);
+            color: #000;
+            font-weight: 800;
+        }
+
+        /* XP Popup */
+        .xp-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, var(--success), #059669);
+            padding: 20px 36px;
+            border-radius: 24px;
+            text-align: center;
+            z-index: 1000;
+            animation: xpPop 1.5s ease forwards;
+            box-shadow: 0 0 60px rgba(16, 185, 129, 0.6);
+        }
+
+        @keyframes xpPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            15% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            30% { transform: translate(-50%, -50%) scale(1); }
+            70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -150%) scale(1); opacity: 0; }
+        }
+
+        .xp-popup-value {
+            font-size: 32px;
+            font-weight: 900;
+        }
+
+        .xp-popup-label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Empty State */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 72px;
+            margin-bottom: 16px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .empty-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Confetti */
+        .confetti-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Tag Colors */
+        .tag-colors {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tag-color-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tag-color-btn:hover { transform: scale(1.15); }
+
+        .tag-color-btn.selected {
+            border-color: #fff;
+            box-shadow: 0 0 0 3px var(--accent);
+        }
+
+        /* Custom Tag List */
+        .custom-tag-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--glass-bg);
+            border-radius: 14px;
+            margin-bottom: 10px;
+        }
+
+        .custom-tag-color {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+        }
+
+        .custom-tag-name {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .custom-tag-delete {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.3s;
+        }
+
+        .custom-tag-delete:hover { opacity: 1; }
+
+        /* Typing Animation */
+        .typing {
+            display: flex;
+            gap: 6px;
+            padding: 10px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typing 1.2s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="mesh-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="noise"></div>
+
+    <!-- Confetti Container -->
+    <div class="confetti-container" id="confetti"></div>
+
+    <!-- XP Popup -->
+    <div class="xp-popup" id="xp-popup" style="display: none;">
+        <div class="xp-popup-value" id="xp-value">+10 XP</div>
+        <div class="xp-popup-label">Отлично!</div>
+    </div>
+
+    <div class="app">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <div class="logo-text">
+                    <h1>MindFlow</h1>
+                    <span>AI Planner</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="level-badge">
+                    <span>⭐</span>
+                    <span id="level-num">1</span>
+                </div>
+                <button class="icon-btn" onclick="openModal('theme-modal')">🎨</button>
+                <div class="premium-badge" onclick="openModal('premium-modal')" id="premium-badge">PRO</div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card glass">
+                <div class="stat-value" id="completed-count">0</div>
+                <div class="stat-label">Выполнено</div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-value" id="streak-value">0</div>
+                <div class="stat-label">🔥 Серия</div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-value" id="pending-count">0</div>
+                <div class="stat-label">В работе</div>
+            </div>
+        </div>
+
+        <!-- XP Progress -->
+        <div class="xp-card glass">
+            <div class="xp-header">
+                <div class="level-circle" id="level-circle">1</div>
+                <div class="xp-info">
+                    <h3>Уровень <span id="level-text">1</span></h3>
+                    <span id="xp-text">0 / 100 XP</span>
+                </div>
+            </div>
+            <div class="xp-bar">
+                <div class="xp-fill" id="xp-fill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-pills">
+            <div class="nav-pill active" data-section="tasks">📋 Задачи</div>
+            <div class="nav-pill" data-section="calendar">📅 Календарь</div>
+            <div class="nav-pill" data-section="reminders">🔔</div>
+            <div class="nav-pill" data-section="ai">🤖 AI</div>
+            <div class="nav-pill" data-section="analytics">📊 Аналитика</div>
+            <div class="nav-pill" data-section="settings">⚙️</div>
+        </div>
+
+        <!-- Tasks Section -->
+        <div class="section active" id="section-tasks">
+            <div class="templates-section">
+                <div class="section-title">⚡ Быстрое создание</div>
+                <div class="templates-scroll" id="templates-scroll"></div>
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                    <div class="template-chip" onclick="quickDeadline('today')">📅 Сегодня</div>
+                    <div class="template-chip" onclick="quickDeadline('tomorrow')">📅 Завтра</div>
+                    <div class="template-chip" onclick="quickDeadline('week')">📅 На неделю</div>
+                </div>
+            </div>
+
+            <div class="task-list" id="task-list"></div>
+
+            <div style="position:fixed;bottom:100px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:99;">
+                <button class="icon-btn" style="width:50px;height:50px;font-size:22px;" onclick="startVoiceInput()" id="voice-btn">🎤</button>
+            </div>
+            <button class="fab" onclick="openModal('task-modal')">+</button>
+        </div>
+
+        <!-- Calendar Section -->
+        <div class="section" id="section-calendar">
+            <div class="calendar-header">
+                <div class="calendar-title">📅 Календарь</div>
+                <div class="calendar-nav">
+                    <button class="calendar-nav-btn" onclick="prevMonth()">‹</button>
+                    <div class="calendar-month" id="calendar-month">Январь 2024</div>
+                    <button class="calendar-nav-btn" onclick="nextMonth()">›</button>
+                </div>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="task-list" id="calendar-tasks" style="margin-top: 16px;"></div>
+        </div>
+
+        <!-- Reminders Section -->
+        <div class="section" id="section-reminders">
+            <div class="ai-card glass">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <div style="font-size:18px;font-weight:700;">🔔 Напоминания</div>
+                    <button class="icon-btn" style="width:40px;height:40px;font-size:18px;" onclick="openModal('reminder-modal')">+</button>
+                </div>
+                <div id="reminders-list"></div>
+            </div>
+        </div>
+
+        <!-- AI Section -->
+        <div class="section" id="section-ai">
+            <div class="ai-card glass">
+                <div class="ai-messages" id="ai-messages">
+                    <div class="ai-msg">
+                        <div class="ai-avatar">🧠</div>
+                        <div class="ai-bubble">Привет, <span id="ai-user-name">друг</span>! 👋<br><br>
+                        Я <b>MindFlow AI</b>. Могу:<br>
+                        • Создавать задачи<br>
+                        • Показывать статистику<br>
+                        • Давать советы<br><br>
+                        <i>Например: "завтра встреча в 15:00"</i></div>
+                    </div>
+                </div>
+                <div class="ai-input-wrap">
+                    <textarea class="ai-input" id="ai-input" placeholder="Напиши задачу или вопрос..." rows="1"></textarea>
+                    <button class="ai-send" onclick="sendAI()">➤</button>
+                </div>
+                <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div class="template-chip" onclick="quickAI('сколько задач?')">📊 Статистика</div>
+                    <div class="template-chip" onclick="quickAI('дай совет')">💡 Совет</div>
+                    <div class="template-chip" onclick="quickAI('мой уровень')">⭐ Прогресс</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div class="section" id="section-analytics">
+            <div class="analytics-card glass">
+                <div class="analytics-header">
+                    <div class="analytics-title">📈 Активность за 7 дней</div>
+                </div>
+                <div style="height: 180px;">
+                    <canvas id="chart-activity"></canvas>
+                </div>
+            </div>
+            <div class="analytics-card glass">
+                <div class="analytics-header">
+                    <div class="analytics-title">📁 По категориям</div>
+                </div>
+                <div style="height: 180px;">
+                    <canvas id="chart-category"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="section" id="section-settings">
+            <div class="settings-card glass" onclick="openModal('theme-modal')">
+                <div class="settings-info">
+                    <h4>🎨 Темы оформления</h4>
+                    <span>Выбери свой стиль</span>
+                </div>
+                <div class="settings-arrow">›</div>
+            </div>
+            <div class="settings-card glass" onclick="openModal('premium-modal')">
+                <div class="settings-info">
+                    <h4>⭐ MindFlow Pro</h4>
+                    <span>Разблокируй все функции</span>
+                </div>
+                <div class="settings-arrow" style="color: #fbbf24;">›</div>
+            </div>
+            <div class="settings-card glass" onclick="openModal('tags-modal')">
+                <div class="settings-info">
+                    <h4>🏷 Мои теги</h4>
+                    <span>Создай свои категории</span>
+                </div>
+                <div class="settings-arrow">›</div>
+            </div>
+            <div class="settings-card glass" onclick="openModal('templates-modal')">
+                <div class="settings-info">
+                    <h4>⚡ Шаблоны задач</h4>
+                    <span>Быстрое создание</span>
+                </div>
+                <div class="settings-arrow">›</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="task-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Новая задача</div>
+                <button class="modal-close" onclick="closeModal('task-modal')">✕</button>
+            </div>
+            <form id="task-form">
+                <div class="form-group">
+                    <label class="form-label">Название</label>
+                    <input type="text" class="form-input" id="task-title" required placeholder="Что сделать?">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea class="form-textarea" id="task-desc" placeholder="Детали..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Приоритет</label>
+                    <div class="option-grid" id="priority-options">
+                        <div class="option-btn" data-value="1">🔴 Высокий</div>
+                        <div class="option-btn selected" data-value="2">🟡 Средний</div>
+                        <div class="option-btn" data-value="3">🟢 Низкий</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тег</label>
+                    <div class="option-grid" id="tag-options"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дедлайн</label>
+                    <input type="date" class="form-input" id="task-deadline">
+                </div>
+                <button type="submit" class="btn">Создать</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="view-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="view-title">Задача</div>
+                <button class="modal-close" onclick="closeModal('view-modal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Описание</label>
+                <div id="view-desc" style="color: var(--text-secondary); font-size: 14px;">—</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label class="form-label">Приоритет</label>
+                    <div id="view-priority" style="font-weight: 600;">—</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тег</label>
+                    <div id="view-tag" style="font-weight: 600;">—</div>
+                </div>
+            </div>
+            <button class="btn" id="view-complete">✓ Выполнить</button>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="closeModal('view-modal')">Закрыть</button>
+                <button class="btn btn-danger" id="view-delete">🗑 Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="theme-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🎨 Темы</div>
+                <button class="modal-close" onclick="closeModal('theme-modal')">✕</button>
+            </div>
+            <div class="theme-grid" id="theme-grid"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="premium-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">⭐ MindFlow Pro</div>
+                <button class="modal-close" onclick="closeModal('premium-modal')">✕</button>
+            </div>
+            <div class="premium-header" style="margin-top: 16px;">
+                <div class="premium-icon">👑</div>
+                <div class="premium-title">MindFlow Pro</div>
+                <div class="premium-subtitle">Разблокируй все возможности</div>
+            </div>
+            <div class="premium-features">
+                <div class="premium-feature">
+                    <div class="premium-feature-icon">🎨</div>
+                    <div class="premium-feature-text">
+                        <h4>Все темы оформления</h4>
+                        <p>Glassmorphism, Neon, Brutalism...</p>
+                    </div>
+                </div>
+                <div class="premium-feature">
+                    <div class="premium-feature-icon">🏷</div>
+                    <div class="premium-feature-text">
+                        <h4>Безлимитные теги</h4>
+                        <p>Создавай любые категории</p>
+                    </div>
+                </div>
+                <div class="premium-feature">
+                    <div class="premium-feature-icon">🤖</div>
+                    <div class="premium-feature-text">
+                        <h4>AI без лимитов</h4>
+                        <p>Создавай сколько хочешь</p>
+                    </div>
+                </div>
+                <div class="premium-feature">
+                    <div class="premium-feature-icon">📊</div>
+                    <div class="premium-feature-text">
+                        <h4>Расширенная аналитика</h4>
+                        <p>Детальные отчёты</p>
+                    </div>
+                </div>
+            </div>
+            <div class="premium-plans">
+                <div class="premium-plan" data-plan="month" onclick="selectPlan('month')">
+                    <div class="premium-plan-price">150 ⭐</div>
+                    <div class="premium-plan-period">в месяц</div>
+                </div>
+                <div class="premium-plan selected" data-plan="year" onclick="selectPlan('year')">
+                    <div class="premium-plan-price">999 ⭐</div>
+                    <div class="premium-plan-period">в год</div>
+                    <div class="premium-plan-save">Экономия 44%</div>
+                </div>
+            </div>
+            <button class="btn premium-btn" onclick="buyPremium()">⭐ Купить за звёзды</button>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="checkPremium()">Уже имею PRO</button>
+                <button class="btn btn-secondary" onclick="closeModal('premium-modal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="tags-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🏷 Мои теги</div>
+                <button class="modal-close" onclick="closeModal('tags-modal')">✕</button>
+            </div>
+            <div id="custom-tags-list"></div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label">Новый тег</label>
+                <input type="text" class="form-input" id="new-tag-name" placeholder="Название">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Цвет</label>
+                <div class="tag-colors" id="tag-colors"></div>
+            </div>
+            <button class="btn" onclick="addCustomTag()">Добавить тег</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="templates-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">⚡ Шаблоны</div>
+                <button class="modal-close" onclick="closeModal('templates-modal')">✕</button>
+            </div>
+            <div id="templates-list"></div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label">Новый шаблон</label>
+                <input type="text" class="form-input" id="new-template-name" placeholder="Название">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Эмодзи</label>
+                <input type="text" class="form-input" id="new-template-emoji" placeholder="📝" maxlength="2">
+            </div>
+            <button class="btn" onclick="addTemplate()">Добавить шаблон</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="reminder-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🔔 Новое напоминание</div>
+                <button class="modal-close" onclick="closeModal('reminder-modal')">✕</button>
+            </div>
+            <form id="reminder-form">
+                <div class="form-group">
+                    <label class="form-label">Текст напоминания</label>
+                    <input type="text" class="form-input" id="reminder-text" required placeholder="О чём напомнить?">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Когда напомнить</label>
+                    <input type="datetime-local" class="form-input" id="reminder-datetime" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Повтор</label>
+                    <div class="option-grid" id="repeat-options">
+                        <div class="option-btn selected" data-value="">Без повтора</div>
+                        <div class="option-btn" data-value="daily">Ежедневно</div>
+                        <div class="option-btn" data-value="weekly">Еженедельно</div>
+                        <div class="option-btn" data-value="monthly">Ежемесячно</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+                    <div class="template-chip" onclick="setReminderQuick('today')">Сегодня</div>
+                    <div class="template-chip" onclick="setReminderQuick('tomorrow')">Завтра</div>
+                    <div class="template-chip" onclick="setReminderQuick('1h')">Через 1ч</div>
+                    <div class="template-chip" onclick="setReminderQuick('3h')">Через 3ч</div>
+                </div>
+                <button type="submit" class="btn">🔔 Создать</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Voice Recording Indicator -->
+    <div class="modal-overlay" id="voice-modal">
+        <div class="modal" style="text-align:center;padding:40px;">
+            <div style="font-size:60px;margin-bottom:20px;">🎤</div>
+            <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Запись...</div>
+            <div style="color:var(--text-muted);margin-bottom:20px;">Говори задачу</div>
+            <div class="typing" style="justify-content:center;"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+            <button class="btn btn-danger" style="margin-top:20px;" onclick="stopVoiceInput()">⏹ Остановить</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+        
+        const telegramUser = tg.initDataUnsafe?.user;
+        const USER_ID = telegramUser?.id || 'guest_' + Date.now();
+        const USER_NAME = telegramUser?.first_name || 'Гость';
+        const API_URL = new URLSearchParams(window.location.search).get('api_url') || '';
+        
+        async function syncWithServer() {
+            if (!API_URL || USER_ID.startsWith('guest_')) return;
+            
+            try {
+                const [userRes, tasksRes] = await Promise.all([
+                    fetch(`${API_URL}/api/user/${USER_ID}`),
+                    fetch(`${API_URL}/api/tasks/${USER_ID}`)
+                ]);
+                
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    if (userData.xp !== undefined) state.user.xp = userData.xp;
+                    if (userData.level !== undefined) state.user.level = userData.level;
+                    if (userData.streak !== undefined) state.user.streak = userData.streak;
+                    if (userData.total_completed !== undefined) state.user.completed = userData.total_completed;
+                    state.user.premium = userData.is_premium === true;
+                    state.user.premium_until = userData.premium_until || null;
+                }
+                
+                if (tasksRes.ok) {
+                    const tasksData = await tasksRes.json();
+                    const serverTaskIds = new Set(tasksData.map(t => t.id));
+                    const localOnlyTasks = state.tasks.filter(t => !serverTaskIds.has(t.id));
+                    
+                    state.tasks = [
+                        ...tasksData.map(t => ({
+                            id: t.id,
+                            title: t.title,
+                            description: t.description || '',
+                            priority: t.priority,
+                            tag: t.category,
+                            deadline: t.deadline,
+                            completed: t.status === 'completed',
+                            completedAt: t.completed_at,
+                            createdAt: t.created_at
+                        })),
+                        ...localOnlyTasks
+                    ];
+                }
+                
+                saveState();
+                renderAll();
+            } catch (e) {
+                console.log('Sync error:', e);
+            }
+        }
+        
+        async function syncPremiumStatus() {
+            if (!API_URL || USER_ID.startsWith('guest_')) return;
+            try {
+                const res = await fetch(`${API_URL}/api/user/${USER_ID}/premium`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const wasPremium = state.user.premium;
+                    state.user.premium = data.is_premium === true;
+                    state.user.premium_until = data.premium_until || null;
+                    if (!wasPremium && state.user.premium) {
+                        saveState();
+                        renderAll();
+                        createConfetti();
+                        showXPPopup('PRO!');
+                        tg.showPopup({ title: '🎉 Premium активирован!', message: 'MindFlow Pro теперь доступен!', buttons: [{ type: 'ok' }] });
+                        stopPremiumPolling();
+                    }
+                    saveState();
+                    renderAll();
+                }
+            } catch (e) {
+                console.log('Premium sync error:', e);
+            }
+        }
+        
+        async function syncTaskToServer(task) {
+            if (!API_URL || USER_ID.startsWith('guest_')) return;
+            
+            try {
+                await fetch(`${API_URL}/api/tasks/${USER_ID}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: task.title,
+                        description: task.description,
+                        category: task.tag,
+                        priority: task.priority,
+                        deadline: task.deadline
+                    })
+                });
+            } catch (e) {
+                console.log('Task sync error:', e);
+            }
+        }
+        
+        async function completeTaskOnServer(taskId) {
+            if (!API_URL || USER_ID.startsWith('guest_')) return;
+            
+            try {
+                await fetch(`${API_URL}/api/tasks/${taskId}/complete`, { method: 'POST' });
+            } catch (e) {
+                console.log('Complete sync error:', e);
+            }
+        }
+        
+        // Handle events from bot
+        tg.onEvent('customEvent', (event) => {
+            if (event.detail?.action === 'premium_activated') {
+                state.user.premium = true;
+                saveState();
+                renderAll();
+            }
+        });
+        
+        // Check premium from URL params (bot can pass it)
+        const urlParams = new URLSearchParams(window.location.search);
+        const premiumParam = urlParams.get('premium');
+        if (premiumParam === '1' || premiumParam === 'true') {
+            state.user.premium = true;
+        }
+        
+        // Premium status polling
+        let premiumCheckInterval = null;
+        function startPremiumPolling() {
+            if (!API_URL || premiumCheckInterval) return;
+            premiumCheckInterval = setInterval(syncPremiumStatus, 10000);
+        }
+        function stopPremiumPolling() {
+            if (premiumCheckInterval) {
+                clearInterval(premiumCheckInterval);
+                premiumCheckInterval = null;
+            }
+        }
+        
+        tg.onEvent('viewportChanged', () => {
+            syncPremiumStatus();
+        });
+
+        const LEVELS = [0, 100, 250, 500, 1000, 2000, 4000, 8000, 15000, 30000];
+        const DEFAULT_TAGS = [
+            { name: 'Работа', color: '#8b5cf6', emoji: '💼' },
+            { name: 'Дом', color: '#ef4444', emoji: '🏠' },
+            { name: 'Учёба', color: '#10b981', emoji: '📚' },
+            { name: 'Спорт', color: '#f59e0b', emoji: '💪' },
+            { name: 'Прочее', color: '#64748b', emoji: '🎯' }
+        ];
+        const TAG_COLORS = ['#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#0ea5e9', '#ec4899', '#6366f1', '#14b8a6'];
+        
+        const THEMES = [
+            { id: 'glass', name: '🔮 Glass', desc: 'Стекло', free: true, styles: {} },
+            { id: 'neon', name: '⚡ Neon', desc: 'Неон', free: false, styles: {
+                '--accent': '#00ff88', '--accent-glow': '0 0 30px rgba(0, 255, 136, 0.5)'
+            }},
+            { id: 'brutal', name: '🧱 Brutal', desc: 'Брутализм', free: false, styles: {
+                '--accent': '#ff3333', '--glass-bg': 'rgba(255,255,255,0.08)', '--glass-border': 'rgba(255,255,255,0.2)'
+            }},
+            { id: 'fluid', name: '🌊 Fluid', desc: 'Плавный', free: false, styles: {
+                '--accent': '#0ea5e9', '--glass-border-radius': '30px'
+            }},
+            { id: 'dark-purple', name: '💜 Purple', desc: 'Фиолет', free: false, styles: {
+                '--accent': '#a855f7'
+            }},
+            { id: 'gold', name: '✨ Gold', desc: 'Золото', free: false, styles: {
+                '--accent': '#fbbf24', '--accent-glow': '0 0 30px rgba(251, 191, 36, 0.5)'
+            }}
+        ];
+
+        let state = {
+            userId: USER_ID,
+            userName: USER_NAME,
+            tasks: [],
+            tags: [...DEFAULT_TAGS],
+            templates: [
+                { name: 'Встреча', emoji: '💼', tag: 'Работа', priority: 1 },
+                { name: 'Звонок', emoji: '📞', tag: 'Работа', priority: 2 },
+                { name: 'Отчёт', emoji: '📊', tag: 'Работа', priority: 1 },
+                { name: 'Тренировка', emoji: '💪', tag: 'Спорт', priority: 2 },
+                { name: 'Прочитать', emoji: '📚', tag: 'Учёба', priority: 3 }
+            ],
+            user: { xp: 0, level: 1, streak: 0, completed: 0, premium: false, theme: 'glass' },
+            calendar: new Date(),
+            charts: {}
+        };
+
+        let selectedPlan = 'year';
+
+        function loadState() {
+            const storageKey = `mindflow_${USER_ID}`;
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state = { ...state, ...parsed, userId: USER_ID, userName: USER_NAME };
+                state.calendar = new Date(state.calendar || Date.now());
+                
+                // Миграция - убедимся что все поля существуют
+                if (!state.user) state.user = {};
+                state.user.xp = state.user.xp || 0;
+                state.user.level = state.user.level || 1;
+                state.user.streak = state.user.streak || 0;
+                state.user.completed = state.user.completed || 0;
+                state.user.premium = state.user.premium || false;
+                state.user.theme = state.user.theme || 'glass';
+                
+                // Убедимся что у задач есть id
+                state.tasks = state.tasks.map(t => ({
+                    ...t,
+                    id: t.id || Date.now() + Math.random()
+                }));
+            }
+            renderAll();
+        }
+
+        function saveState() {
+            const storageKey = `mindflow_${USER_ID}`;
+            localStorage.setItem(storageKey, JSON.stringify(state));
+        }
+
+        function getLevel(xp) {
+            for (let i = LEVELS.length - 1; i >= 0; i--) {
+                if (xp >= LEVELS[i]) return i + 1;
+            }
+            return 1;
+        }
+
+        function updateLevelUI() {
+            const level = getLevel(state.user.xp);
+            state.user.level = level;
+            
+            document.getElementById('level-num').textContent = level;
+            document.getElementById('level-circle').textContent = level;
+            document.getElementById('level-text').textContent = level;
+            
+            const current = LEVELS[level - 1] || 0;
+            const next = LEVELS[level] || LEVELS[LEVELS.length - 1];
+            const progress = level >= 10 ? 100 : ((state.user.xp - current) / (next - current)) * 100;
+            
+            document.getElementById('xp-fill').style.width = progress + '%';
+            document.getElementById('xp-text').textContent = `${state.user.xp || 0} / ${next} XP`;
+            document.getElementById('completed-count').textContent = state.user.completed || 0;
+            document.getElementById('streak-value').textContent = state.user.streak || 0;
+            document.getElementById('pending-count').textContent = state.tasks.filter(t => !t.completed).length;
+            
+            if (state.user.premium) {
+                document.getElementById('premium-badge').textContent = 'PRO ✓';
+            }
+        }
+
+        function renderAll() {
+            updateLevelUI();
+            renderTasks();
+            renderTemplates();
+            renderTags();
+            renderThemes();
+            renderCalendar();
+            renderAnalytics();
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('task-list');
+            const pending = state.tasks.filter(t => !t.completed);
+            
+            if (pending.length === 0) {
+                list.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📋</div>
+                        <div class="empty-title">Нет задач</div>
+                        <div class="empty-text">Нажми + чтобы добавить</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = pending.map((task) => `
+                <div class="task-card glass" onclick="viewTaskById(${task.id})">
+                    <div class="task-top">
+                        <div class="task-check" onclick="event.stopPropagation(); toggleTaskById(${task.id})">✓</div>
+                        <div class="task-info">
+                            <div class="task-title">${escapeHtml(task.title)}</div>
+                            <div class="task-desc">${escapeHtml(task.description || '')}</div>
+                        </div>
+                    </div>
+                    <div class="task-bottom">
+                        <div class="task-tags">
+                            <span class="task-tag" style="background: ${getTagColor(task.tag)}20; color: ${getTagColor(task.tag)}">${escapeHtml(task.tag)}</span>
+                        </div>
+                        <div class="task-meta">
+                            ${task.deadline ? `<span class="task-meta-item">📅 ${task.deadline}</span>` : ''}
+                            <span class="task-meta-item">${['🔴', '🟡', '🟢'][task.priority - 1]}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function getTaskIndexById(id) {
+            return state.tasks.findIndex(t => t.id === id);
+        }
+        
+        function toggleTaskById(id) {
+            const idx = getTaskIndexById(id);
+            if (idx !== -1) toggleTask(idx);
+        }
+        
+        function viewTaskById(id) {
+            const idx = getTaskIndexById(id);
+            if (idx !== -1) viewTask(idx);
+        }
+
+        function getTagColor(tagName) {
+            const tag = state.tags.find(t => t.name === tagName);
+            return tag?.color || '#8b5cf6';
+        }
+
+        function toggleTask(idx) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            
+            const task = state.tasks[idx];
+            if (!task) return;
+            
+            if (!task.completed) {
+                task.completed = true;
+                task.completedAt = new Date().toISOString();
+                state.user.completed = (state.user.completed || 0) + 1;
+                state.user.xp = (state.user.xp || 0) + [20, 10, 5][task.priority - 1];
+                
+                const today = new Date().toDateString();
+                const lastActivity = state.user.lastActivity;
+                if (lastActivity !== today) {
+                    const yesterday = new Date(Date.now() - 86400000).toDateString();
+                    state.user.streak = lastActivity === yesterday ? (state.user.streak || 0) + 1 : 1;
+                    state.user.lastActivity = today;
+                }
+                
+                saveState();
+                showXPPopup([20, 10, 5][task.priority - 1]);
+                createConfetti();
+                completeTaskOnServer(task.id);
+            } else {
+                task.completed = false;
+                task.completedAt = null;
+                state.user.completed = Math.max(0, (state.user.completed || 0) - 1);
+                saveState();
+            }
+            
+            renderAll();
+        }
+
+        function viewTask(idx) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            
+            const pending = state.tasks.filter(t => !t.completed);
+            const task = pending[idx];
+            if (!task) return;
+            
+            document.getElementById('view-title').textContent = task.title;
+            document.getElementById('view-desc').textContent = task.description || '—';
+            document.getElementById('view-priority').textContent = ['Высокий', 'Средний', 'Низкий'][task.priority - 1];
+            document.getElementById('view-tag').textContent = task.tag;
+            
+            document.getElementById('view-complete').onclick = () => {
+                closeModal('view-modal');
+                toggleTaskById(task.id);
+            };
+            
+            document.getElementById('view-delete').onclick = () => {
+                const realIdx = getTaskIndexById(task.id);
+                if (realIdx !== -1) {
+                    state.tasks.splice(realIdx, 1);
+                    saveState();
+                }
+                closeModal('view-modal');
+                renderAll();
+            };
+            
+            openModal('view-modal');
+        }
+
+        function renderTemplates() {
+            const scroll = document.getElementById('templates-scroll');
+            scroll.innerHTML = state.templates.map(t => 
+                `<div class="template-chip" onclick="createFromTemplate('${t.name}', '${t.tag}', ${t.priority})">${t.emoji} ${t.name}</div>`
+            ).join('') + `<div class="template-chip template-add" onclick="openModal('templates-modal')">+ Свой</div>`;
+        }
+
+        function createFromTemplate(name, tag, priority) {
+            document.getElementById('task-title').value = name;
+            document.querySelectorAll('#priority-options .option-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.value == priority);
+            });
+            document.querySelectorAll('#tag-options .option-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.tag === tag);
+            });
+            openModal('task-modal');
+        }
+
+        function renderTags() {
+            const options = document.getElementById('tag-options');
+            if (!options) return;
+            
+            options.innerHTML = state.tags.slice(0, 6).map((t, i) => 
+                `<div class="option-btn ${i === 0 ? 'selected' : ''}" data-tag="${t.name}">${t.emoji} ${t.name}</div>`
+            ).join('');
+            
+            options.querySelectorAll('.option-btn').forEach(btn => {
+                btn.onclick = () => {
+                    options.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                };
+            });
+            
+            const colors = document.getElementById('tag-colors');
+            colors.innerHTML = TAG_COLORS.map(c => 
+                `<div class="tag-color-btn" style="background: ${c}" onclick="selectTagColor('${c}')"></div>`
+            ).join('');
+            
+            const customList = document.getElementById('custom-tags-list');
+            customList.innerHTML = state.tags.slice(5).map((t, i) => `
+                <div class="custom-tag-item">
+                    <div class="custom-tag-color" style="background: ${t.color}"></div>
+                    <div class="custom-tag-name">${t.name}</div>
+                    <button class="custom-tag-delete" onclick="removeCustomTag(${i + 5})">×</button>
+                </div>
+            `).join('');
+        }
+
+        let selectedTagColor = TAG_COLORS[0];
+        
+        function selectTagColor(color) {
+            selectedTagColor = color;
+            document.querySelectorAll('.tag-color-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.style.background === color);
+            });
+        }
+
+        function addCustomTag() {
+            const name = document.getElementById('new-tag-name').value.trim();
+            if (!name) return;
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            state.tags.push({ name, color: selectedTagColor, emoji: '🏷' });
+            document.getElementById('new-tag-name').value = '';
+            saveState();
+            renderTags();
+        }
+
+        function removeCustomTag(idx) {
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            state.tags.splice(idx, 1);
+            saveState();
+            renderTags();
+        }
+
+        function renderThemes() {
+            const grid = document.getElementById('theme-grid');
+            grid.innerHTML = THEMES.map(t => {
+                const locked = !t.free && !state.user.premium;
+                return `
+                    <div class="theme-option ${locked ? 'locked' : ''} ${state.user.theme === t.id ? 'selected' : ''}" 
+                         onclick="${locked ? 'openModal(\'premium-modal\')' : `setTheme('${t.id}')`}">
+                        ${!t.free && state.user.premium ? '' : ''}
+                        <div class="theme-preview" style="background: linear-gradient(135deg, var(--bg-primary, #1a1a2e), ${t.styles?.['--accent'] || 'var(--accent)'})"></div>
+                        <div class="theme-name">${t.name}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setTheme(id) {
+            const theme = THEMES.find(t => t.id === id);
+            if (!theme.free && !state.user.premium) {
+                openModal('premium-modal');
+                return;
+            }
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            state.user.theme = id;
+            
+            if (theme.styles) {
+                Object.assign(document.documentElement.style, theme.styles);
+            }
+            
+            saveState();
+            renderThemes();
+        }
+
+        function selectPlan(plan) {
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+            selectedPlan = plan;
+            document.querySelectorAll('.premium-plan').forEach(el => {
+                el.classList.toggle('selected', el.dataset.plan === plan);
+            });
+        }
+
+        function buyPremium() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            tg.sendData(JSON.stringify({
+                action: 'buy_premium',
+                plan: selectedPlan
+            }));
+        }
+        
+        function checkPremium() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            if (API_URL) {
+                syncPremiumStatus().then(() => {
+                    _showPremiumResult();
+                });
+            } else {
+                tg.sendData(JSON.stringify({ action: 'check_premium' }));
+                tg.showPopup({ title: 'Проверка Premium', message: 'Запрос отправлен боту. Ответ придёт в чат.', buttons: [{ type: 'ok' }] });
+            }
+        }
+
+        function _showPremiumResult() {
+            if (state.user.premium) {
+                tg.showPopup({ title: '✅ Premium активен', message: 'MindFlow Pro подключён!' + (state.user.premium_until ? '\nДействует до: ' + state.user.premium_until : ''), buttons: [{ type: 'ok' }] });
+            } else {
+                tg.showPopup({ title: '❌ Premium не активен', message: 'Подключите MindFlow Pro для доступа ко всем функциям', buttons: [{ type: 'ok' }] });
+            }
+        }
+        
+        function activatePremium() {
+            state.user.premium = true;
+            saveState();
+            renderAll();
+            closeModal('premium-modal');
+            createConfetti();
+            tg.showPopup({ title: '✓ Готово', message: 'MindFlow Pro активирован!', buttons: [{ type: 'ok' }] });
+        }
+
+        function showXPPopup(xp) {
+            const popup = document.getElementById('xp-popup');
+            document.getElementById('xp-value').textContent = `+${xp} XP`;
+            popup.style.display = 'block';
+            popup.style.animation = 'none';
+            popup.offsetHeight;
+            popup.style.animation = 'xpPop 1.5s ease forwards';
+            setTimeout(() => popup.style.display = 'none', 1500);
+        }
+
+        function createConfetti() {
+            const container = document.getElementById('confetti');
+            const colors = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                container.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+
+        function openModal(id) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            document.getElementById(id).classList.add('open');
+        }
+
+        function closeModal(id) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            document.getElementById(id).classList.remove('open');
+        }
+        
+        // Close modal on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('open');
+                }
+            });
+        });
+
+        document.querySelectorAll('.nav-pill').forEach(pill => {
+            pill.onclick = () => {
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById('section-' + pill.dataset.section).classList.add('active');
+            };
+        });
+
+        document.querySelectorAll('#priority-options .option-btn').forEach(btn => {
+            btn.onclick = () => {
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                document.querySelectorAll('#priority-options .option-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            };
+        });
+
+        document.getElementById('task-form').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('task-title').value.trim();
+            if (!title) {
+                tg.showPopup({ title: 'Ошибка', message: 'Введите название задачи', buttons: [{ type: 'ok' }] });
+                return;
+            }
+            
+            const desc = document.getElementById('task-desc').value;
+            const priority = parseInt(document.querySelector('#priority-options .selected')?.dataset.value || 2);
+            const tag = document.querySelector('#tag-options .selected')?.dataset.tag || state.tags[0].name;
+            const deadline = document.getElementById('task-deadline').value;
+            
+            const task = {
+                id: Date.now(),
+                title, description: desc, priority, tag, deadline,
+                completed: false, createdAt: new Date().toISOString()
+            };
+            
+            state.tasks.push(task);
+            state.user.xp += 10;
+            saveState();
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            showXPPopup(10);
+            
+            closeModal('task-modal');
+            document.getElementById('task-form').reset();
+            renderAll();
+            
+            await syncTaskToServer(task);
+            
+            try {
+                tg.sendData(JSON.stringify({
+                    action: 'add_task',
+                    title,
+                    description: desc,
+                    priority,
+                    category: tag,
+                    deadline
+                }));
+            } catch(e) {}
+        };
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                               'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            
+            const year = state.calendar.getFullYear();
+            const month = state.calendar.getMonth();
+            
+            document.getElementById('calendar-month').textContent = `${monthNames[month]} ${year}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const startDay = firstDay === 0 ? 6 : firstDay - 1;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            let html = dayNames.map(d => `<div class="calendar-day-name">${d}</div>`).join('');
+            
+            for (let i = 0; i < startDay; i++) {
+                html += '<div class="calendar-day" style="opacity: 0.3;"></div>';
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const hasTasks = state.tasks.some(t => t.deadline === dateStr && !t.completed);
+                const isToday = dateStr === todayStr;
+                
+                html += `
+                    <div class="calendar-day ${isToday ? 'today' : ''} ${hasTasks ? 'has-tasks' : ''}" 
+                         onclick="selectDate('${dateStr}')">
+                        <div class="calendar-day-num">${day}</div>
+                    </div>
+                `;
+            }
+            
+            grid.innerHTML = html;
+        }
+
+        function prevMonth() {
+            state.calendar.setMonth(state.calendar.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            state.calendar.setMonth(state.calendar.getMonth() + 1);
+            renderCalendar();
+        }
+
+        function selectDate(dateStr) {
+            const tasks = state.tasks.filter(t => t.deadline === dateStr && !t.completed);
+            const list = document.getElementById('calendar-tasks');
+            
+            if (tasks.length === 0) {
+                list.innerHTML = '<div class="empty" style="padding: 30px;"><div class="empty-text">Нет активных задач на эту дату</div></div>';
+            } else {
+                list.innerHTML = tasks.map((t) => `
+                    <div class="task-card glass" onclick="viewTaskById(${t.id})">
+                        <div class="task-top">
+                            <div class="task-check" onclick="event.stopPropagation(); toggleTaskById(${t.id})">✓</div>
+                            <div class="task-info">
+                                <div class="task-title">${escapeHtml(t.title)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function sendAI() {
+            const input = document.getElementById('ai-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            
+            const messages = document.getElementById('ai-messages');
+            messages.innerHTML += `
+                <div class="ai-msg user">
+                    <div class="ai-avatar">👤</div>
+                    <div class="ai-bubble">${escapeHtml(text)}</div>
+                </div>
+            `;
+            
+            input.value = '';
+            
+            messages.innerHTML += `
+                <div class="ai-msg" id="typing-msg">
+                    <div class="ai-avatar">🧠</div>
+                    <div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+                </div>
+            `;
+            
+            messages.scrollTop = messages.scrollHeight;
+            
+            setTimeout(() => {
+                const typing = document.getElementById('typing-msg');
+                const response = processAICommand(text);
+                
+                if (response.createTask) {
+                    const newTask = {
+                        id: Date.now(),
+                        title: response.title,
+                        description: response.description || '',
+                        priority: response.priority || 2,
+                        tag: response.category || 'Прочее',
+                        deadline: response.deadline,
+                        completed: false,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    state.tasks.push(newTask);
+                    saveState();
+                    
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    
+                    typing.innerHTML = `
+                        <div class="ai-avatar">🧠</div>
+                        <div class="ai-bubble">✅ Задача создана!<br><br>
+                        📋 <b>${escapeHtml(response.title)}</b><br>
+                        ${response.deadline ? '📅 ' + response.deadline + '<br>' : ''}
+                        ⚡ ${['Высокий', 'Средний', 'Низкий'][response.priority - 1]} приоритет<br><br>
+                        <i>Нажми на вкладку "Задачи" чтобы увидеть</i></div>
+                    `;
+                    
+                    state.user.xp += 5;
+                    renderAll();
+                } else {
+                    typing.innerHTML = `
+                        <div class="ai-avatar">🧠</div>
+                        <div class="ai-bubble">${response.message}</div>
+                    `;
+                }
+                
+                messages.scrollTop = messages.scrollHeight;
+            }, 800 + Math.random() * 700);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function processAICommand(text) {
+            const lower = text.toLowerCase();
+            
+            if (lower.includes('создай') || lower.includes('добавь') || lower.includes('задача') || lower.includes('надо') || lower.includes('нужно') || lower.includes('купить') || lower.includes('позвонить') || lower.includes('встреча') || lower.includes('сделать')) {
+                const task = parseTaskFromText(text);
+                return { createTask: true, ...task };
+            }
+            
+            if (lower.includes('сколько') && (lower.includes('задач') || lower.includes('дел'))) {
+                const total = state.tasks.length;
+                const pending = state.tasks.filter(t => !t.completed).length;
+                const completed = state.tasks.filter(t => t.completed).length;
+                return { message: `📊 У тебя:<br>• Всего задач: <b>${total}</b><br>• В работе: <b>${pending}</b><br>• Выполнено: <b>${completed}</b>` };
+            }
+            
+            if (lower.includes('статистик') || lower.includes('прогресс') || lower.includes('уровень')) {
+                return { message: `📈 Твоя статистика:<br><br>
+                    ⭐ Уровень: <b>${state.user.level}</b><br>
+                    ✨ XP: <b>${state.user.xp}</b><br>
+                    🔥 Серия: <b>${state.user.streak}</b> дней<br>
+                    ✅ Выполнено: <b>${state.user.completed}</b> задач<br><br>
+                    ${state.user.streak >= 3 ? '💪 Отличная серия! Так держать!' : '💡 Выполняй задачи каждый день чтобы увеличить серию!'}` };
+            }
+            
+            if (lower.includes('совет') || lower.includes('помощь') || lower.includes('подсказк') || lower.includes('что делать')) {
+                const tips = [
+                    '🎯 Начни с самой важной задачи дня - сделай её первой!',
+                    '🍅 Используй технику Pomodoro: 25 минут работы, 5 минут отдыха',
+                    '📝 Разделяй большие задачи на мелкие подзадачи',
+                    '⏰ Установи дедлайны - это мотивирует!',
+                    '🧘 Делай перерывы каждые 1-2 часа для отдыха',
+                    '📊 Проверяй аналитику в конце недели',
+                    '🌙 Планируй завтрашний день вечером',
+                    '✅ Выполняй 3-5 важных задач в день, не больше'
+                ];
+                const pending = state.tasks.filter(t => !t.completed);
+                if (pending.length > 5) {
+                    return { message: `⚠️ У тебя ${pending.length} невыполненных задач!<br><br>💡 ${tips[Math.floor(Math.random() * tips.length)]}` };
+                }
+                return { message: `💡 ${tips[Math.floor(Math.random() * tips.length)]}` };
+            }
+            
+            if (lower.includes('привет') || lower.includes('здравствуй') || lower.includes('хай') || lower.includes('hi')) {
+                const hour = new Date().getHours();
+                let greeting = hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
+                return { message: `${greeting}, ${state.userName}! 👋<br><br>Я MindFlow AI. Могу:<br>
+                    • Создавать задачи (напиши что нужно сделать)<br>
+                    • Показать статистику<br>
+                    • Дать советы по продуктивности<br><br>Просто напиши задачу, например: "завтра встреча с клиентом в 15:00"` };
+            }
+            
+            if (lower.includes('очисти') || lower.includes('удали все') || lower.includes('сброс')) {
+                return { message: '🗑 Чтобы удалить все задачи, зайди в Настройки ⚙️' };
+            }
+            
+            const task = parseTaskFromText(text);
+            return { createTask: true, ...task };
+        }
+        
+        function parseTaskFromText(text) {
+            let title = text;
+            let priority = 2;
+            let deadline = null;
+            let category = 'Прочее';
+            
+            const lower = text.toLowerCase();
+            
+            if (lower.includes('срочно') || lower.includes('важно') || lower.includes('!!')) {
+                priority = 1;
+                title = title.replace(/срочно|важно|!!/gi, '').trim();
+            }
+            
+            if (lower.includes('потом') || lower.includes('не срочно') || lower.includes('когда-нибудь')) {
+                priority = 3;
+                title = title.replace(/потом|не срочно|когда-нибудь/gi, '').trim();
+            }
+            
+            if (lower.includes('завтра')) {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                deadline = tomorrow.toISOString().split('T')[0];
+                title = title.replace(/завтра/gi, '').trim();
+            }
+            
+            if (lower.includes('сегодня') || lower.includes('вечер') || lower.includes('утро')) {
+                deadline = new Date().toISOString().split('T')[0];
+                title = title.replace(/сегодня|вечер|утро/gi, '').trim();
+            }
+            
+            const daysMatch = lower.match(/через\s+(\d+)\s+дн[еяй]/);
+            if (daysMatch) {
+                const days = parseInt(daysMatch[1]);
+                const date = new Date();
+                date.setDate(date.getDate() + days);
+                deadline = date.toISOString().split('T')[0];
+                title = title.replace(/через\s+\d+\s+дн[еяй]/gi, '').trim();
+            }
+            
+            if (lower.includes('работ') || lower.includes('клиент') || lower.includes('проект') || lower.includes('meet')) {
+                category = 'Работа';
+            } else if (lower.includes('дом') || lower.includes('квартир') || lower.includes('уборк')) {
+                category = 'Дом';
+            } else if (lower.includes('учёб') || lower.includes('курс') || lower.includes('экзамен')) {
+                category = 'Учёба';
+            } else if (lower.includes('спорт') || lower.includes('трен') || lower.includes('бег') || lower.includes('жим')) {
+                category = 'Спорт';
+            }
+            
+            title = title.replace(/^(создай|добавь|задача|надо|нужно)\s*/i, '').trim();
+            if (!title) title = text.substring(0, 50);
+            
+            return { title, priority, deadline, category };
+        }
+
+        function renderAnalytics() {
+            const ctx1 = document.getElementById('chart-activity');
+            const ctx2 = document.getElementById('chart-category');
+            
+            if (!state.charts.activity) {
+                const labels = [];
+                const data = [];
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(Date.now() - i * 86400000);
+                    labels.push(d.toLocaleDateString('ru', { weekday: 'short' }));
+                    const dayStr = d.toISOString().split('T')[0];
+                    data.push(state.tasks.filter(t => t.completedAt?.startsWith(dayStr)).length);
+                }
+                
+                state.charts.activity = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Задачи',
+                            data,
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                        }
+                    }
+                });
+                
+                const tagData = {};
+                state.tasks.filter(t => t.completed).forEach(t => {
+                    tagData[t.tag] = (tagData[t.tag] || 0) + 1;
+                });
+                
+                state.charts.category = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(tagData),
+                        datasets: [{
+                            data: Object.values(tagData),
+                            backgroundColor: ['#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#0ea5e9']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: 'rgba(255,255,255,0.7)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function addTemplate() {
+            const name = document.getElementById('new-template-name').value.trim();
+            const emoji = document.getElementById('new-template-emoji').value.trim() || '📝';
+            if (!name) return;
+            
+            state.templates.push({ name, emoji, tag: 'Прочее', priority: 2 });
+            document.getElementById('new-template-name').value = '';
+            document.getElementById('new-template-emoji').value = '';
+            saveState();
+            renderTemplates();
+        }
+
+        loadState();
+        syncWithServer();
+        syncPremiumStatus();
+        startPremiumPolling();
+        initPushNotifications();
+        loadReminders();
+        
+        document.getElementById('ai-user-name').textContent = state.userName;
+        
+        function quickAI(text) {
+            document.getElementById('ai-input').value = text;
+            sendAI();
+        }
+        
+        document.getElementById('ai-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAI();
+            }
+        });
+
+        // === PUSH NOTIFICATIONS ===
+        async function initPushNotifications() {
+            if (!API_URL || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+            try {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') return;
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    await sendSubscriptionToServer(sub);
+                    return;
+                }
+                const vapidRes = await fetch(`${API_URL}/api/vapid-public-key`);
+                if (!vapidRes.ok) return;
+                const { publicKey } = await vapidRes.json();
+                const newSub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: publicKey,
+                });
+                await sendSubscriptionToServer(newSub);
+            } catch (e) {
+                console.log('Push init error:', e);
+            }
+        }
+
+        async function sendSubscriptionToServer(subscription) {
+            if (!API_URL) return;
+            try {
+                await fetch(`${API_URL}/api/push/${USER_ID}/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subscription: JSON.stringify(subscription) }),
+                });
+            } catch (e) {
+                console.log('Push subscription save error:', e);
+            }
+        }
+
+        // === VOICE INPUT ===
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        async function startVoiceInput() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                tg.showPopup({ title: '🎤 Голосовой ввод', message: 'Отправь голосовое сообщение в чат бота — он распознает речь и создаст задачу.', buttons: [{ type: 'ok' }] });
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                let mimeType = 'audio/webm;codecs=opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/ogg';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = '';
+                    }
+                }
+                const options = mimeType ? { mimeType } : {};
+                mediaRecorder = new MediaRecorder(stream, options);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    closeModal('voice-modal');
+                    if (audioChunks.length === 0) {
+                        tg.showPopup({ title: 'Ошибка', message: 'Аудио не записано', buttons: [{ type: 'ok' }] });
+                        return;
+                    }
+                    const ext = mediaRecorder.mimeType?.includes('webm') ? 'webm' : 'ogg';
+                    const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/ogg' });
+
+                    if (API_URL) {
+                        const formData = new FormData();
+                        formData.append('file', blob, `voice.${ext}`);
+                        try {
+                            const res = await fetch(`${API_URL}/api/voice/${USER_ID}`, { method: 'POST', body: formData });
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.text) {
+                                    document.getElementById('task-title').value = data.text;
+                                    openModal('task-modal');
+                                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                                    return;
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Voice API error:', e);
+                        }
+                        tg.showPopup({ title: 'Ошибка', message: 'Не удалось распознать голос. Попробуй ещё раз.', buttons: [{ type: 'ok' }] });
+                    } else {
+                        tg.showPopup({ title: '🎤 Голосовой ввод', message: 'Отправь голосовое сообщение в чат бота — он распознает и создаст задачу.', buttons: [{ type: 'ok' }] });
+                    }
+                };
+                mediaRecorder.start();
+                openModal('voice-modal');
+            } catch (e) {
+                console.log('Microphone error:', e);
+                tg.showPopup({ title: '🎤 Голосовой ввод', message: 'Отправь голосовое сообщение в чат бота — он распознает и создаст задачу.', buttons: [{ type: 'ok' }] });
+            }
+        }
+
+        function stopVoiceInput() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
+        // === REMINDERS ===
+        async function loadReminders() {
+            if (!API_URL || USER_ID.startsWith('guest_')) {
+                renderReminders([]);
+                return;
+            }
+            try {
+                const res = await fetch(`${API_URL}/api/reminders/${USER_ID}`);
+                if (res.ok) {
+                    const reminders = await res.json();
+                    renderReminders(reminders);
+                    return;
+                }
+            } catch (e) {
+                console.log('Load reminders error:', e);
+            }
+            renderReminders([]);
+        }
+
+        function renderReminders(reminders) {
+            const list = document.getElementById('reminders-list');
+            if (!reminders || reminders.length === 0) {
+                list.innerHTML = '<div class="empty" style="padding:30px;"><div class="empty-icon">🔔</div><div class="empty-title">Нет напоминаний</div><div class="empty-text">Нажми + чтобы создать</div></div>';
+                return;
+            }
+            list.innerHTML = reminders.map(r => {
+                let timeStr = r.remind_at;
+                try {
+                    const dt = new Date(r.remind_at);
+                    timeStr = dt.toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                } catch(e) {}
+                const repeatLabel = r.repeat_interval ? { daily: '🔄 Ежедневно', weekly: '🔄 Еженедельно', monthly: '🔄 Ежемесячно' }[r.repeat_interval] || '' : '';
+                return `<div class="task-card glass" style="margin-bottom:10px;">
+                    <div class="task-top">
+                        <div style="font-size:18px;">🔔</div>
+                        <div class="task-info">
+                            <div class="task-title">${escapeHtml(r.text || 'Напоминание')}</div>
+                            <div class="task-desc">⏰ ${timeStr} ${repeatLabel}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:10px;">
+                        <button class="btn btn-secondary" style="flex:1;padding:8px;" onclick="snoozeReminder(${r.id})">😴 10 мин</button>
+                        <button class="btn btn-danger" style="flex:1;padding:8px;" onclick="deleteReminder(${r.id})">🗑</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function snoozeReminder(id) {
+            if (!API_URL) return;
+            try {
+                await fetch(`${API_URL}/api/reminders/${id}/snooze?user_id=${USER_ID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ minutes: 10 }) });
+                loadReminders();
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } catch (e) { console.log('Snooze error:', e); }
+        }
+
+        async function deleteReminder(id) {
+            if (!API_URL) return;
+            try {
+                await fetch(`${API_URL}/api/reminders/${id}?user_id=${USER_ID}`, { method: 'DELETE' });
+                loadReminders();
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } catch (e) { console.log('Delete reminder error:', e); }
+        }
+
+        document.getElementById('reminder-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('reminder-text').value.trim();
+            const datetime = document.getElementById('reminder-datetime').value;
+            if (!text) {
+                tg.showPopup({ title: 'Ошибка', message: 'Напиши текст напоминания', buttons: [{ type: 'ok' }] });
+                return;
+            }
+            if (!datetime) {
+                tg.showPopup({ title: 'Ошибка', message: 'Выбери дату и время', buttons: [{ type: 'ok' }] });
+                return;
+            }
+            const remindAt = new Date(datetime).toISOString();
+            const repeat = document.querySelector('#repeat-options .selected')?.dataset.value || '';
+
+            if (API_URL) {
+                try {
+                    const res = await fetch(`${API_URL}/api/reminders/${USER_ID}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text, remind_at: remindAt, repeat_interval: repeat || null }),
+                    });
+                    if (res.ok) {
+                        closeModal('reminder-modal');
+                        document.getElementById('reminder-form').reset();
+                        loadReminders();
+                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                        tg.showPopup({ title: '✅ Готово', message: 'Напоминание создано!', buttons: [{ type: 'ok' }] });
+                        return;
+                    }
+                    const err = await res.json().catch(() => ({}));
+                    tg.showPopup({ title: 'Ошибка', message: err.detail || 'Не удалось создать', buttons: [{ type: 'ok' }] });
+                } catch (e) {
+                    console.log('Create reminder API error:', e);
+                    tg.showPopup({ title: 'Ошибка', message: 'Сервер недоступен. Напиши /remind в чате бота.', buttons: [{ type: 'ok' }] });
+                }
+            } else {
+                tg.sendData(JSON.stringify({ action: 'add_reminder', text, remind_at: remindAt, repeat_interval: repeat }));
+                closeModal('reminder-modal');
+                document.getElementById('reminder-form').reset();
+                tg.showPopup({ title: '✅ Отправлено', message: 'Напоминание создано через бота!', buttons: [{ type: 'ok' }] });
+            }
+        };
+
+        document.querySelectorAll('#repeat-options .option-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('#repeat-options .option-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            };
+        });
+
+        function setReminderQuick(preset) {
+            const dtInput = document.getElementById('reminder-datetime');
+            const now = new Date();
+            let target;
+            if (preset === 'today') target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0);
+            else if (preset === 'tomorrow') target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0);
+            else if (preset === '1h') target = new Date(now.getTime() + 3600000);
+            else if (preset === '3h') target = new Date(now.getTime() + 10800000);
+            if (target) {
+                const local = new Date(target.getTime() - target.getTimezoneOffset() * 60000);
+                dtInput.value = local.toISOString().slice(0, 16);
+            }
+        }
+
+        // === QUICK DEADLINE BUTTONS ===
+        function quickDeadline(preset) {
+            let date;
+            if (preset === 'today') date = new Date().toISOString().split('T')[0];
+            else if (preset === 'tomorrow') { const d = new Date(); d.setDate(d.getDate() + 1); date = d.toISOString().split('T')[0]; }
+            else if (preset === 'week') { const d = new Date(); d.setDate(d.getDate() + 7); date = d.toISOString().split('T')[0]; }
+            document.getElementById('task-deadline').value = date;
+            document.getElementById('task-title').focus();
+        }
+    </script>
+</body>
+</html>
