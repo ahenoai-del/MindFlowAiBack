@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
 from db import UserRepo, TaskRepo, GamificationRepo, ReminderRepo, StatsRepo, PushSubscriptionRepo
@@ -91,7 +91,7 @@ class PushSubscriptionCreate(BaseModel):
 
 @app.get("/api/user/{user_id}")
 async def get_user(user_id: int):
-    user = await UserRepo.get(user_id)
+    user, _ = await UserRepo.create(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     g = await GamificationRepo.get_or_create(user_id)
@@ -128,6 +128,7 @@ async def get_vapid_public_key():
 
 @app.post("/api/push/{user_id}/subscribe")
 async def push_subscribe(user_id: int, sub: PushSubscriptionCreate):
+    await UserRepo.create(user_id)
     ok = await PushService.register_subscription(user_id, sub.subscription)
     if not ok:
         raise HTTPException(status_code=400, detail="Invalid subscription")
@@ -156,6 +157,7 @@ async def get_tasks(user_id: int, include_completed: bool = False):
 
 @app.post("/api/tasks/{user_id}")
 async def create_task(user_id: int, task: TaskCreate):
+    await UserRepo.create(user_id)
     new_task = await TaskRepo.create(
         user_id=user_id, title=task.title, description=task.description,
         category=task.category, priority=task.priority,
@@ -274,6 +276,11 @@ async def verify_user(init_data: str = Query(...)):
     if user_id:
         await UserRepo.create(user_id, user_data.get("username"))
     return {"user_id": user_id, "user": user_data}
+
+
+@app.get("/webapp")
+async def webapp_index():
+    return FileResponse("webapp/index.html", media_type="text/html")
 
 
 @app.get("/sw.js")

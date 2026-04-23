@@ -79,11 +79,21 @@ async def run_api() -> None:
 
 async def main() -> None:
     setup_logging(log_level=settings.LOG_LEVEL, log_file=settings.LOG_FILE)
-    await init_db()
+    logger.info("Starting MindFlow...")
+    logger.info("DATABASE_URL set: %s", bool(settings.DATABASE_URL))
+    logger.info("BOT_TOKEN set: %s", bool(settings.BOT_TOKEN))
+    try:
+        await init_db()
+        logger.info("Database connected successfully")
+    except Exception as e:
+        logger.critical("Failed to connect to database: %s", e, exc_info=True)
+        raise
 
     if os.environ.get("RUN_API") == "true":
+        logger.info("Running bot + API mode")
         await asyncio.gather(run_bot(), run_api())
     else:
+        logger.info("Running bot only mode")
         await run_bot()
 
 
