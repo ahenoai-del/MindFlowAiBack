@@ -29,7 +29,10 @@ class VoiceService:
                 tmp.flush()
                 tmp.close()
 
-                client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+                kwargs = {"api_key": settings.OPENAI_API_KEY}
+                if settings.ai_base_url:
+                    kwargs["base_url"] = settings.ai_base_url
+                client = AsyncOpenAI(**kwargs)
                 with open(tmp.name, "rb") as audio_file:
                     transcript = await client.audio.transcriptions.create(
                         model="whisper-1",
