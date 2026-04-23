@@ -592,7 +592,8 @@ class ReminderRepo:
         pool = get_pool()
         now = datetime.now().isoformat()
         query = """SELECT * FROM reminders
-                   WHERE (status = 'pending' OR status IS NULL) AND sent = FALSE AND remind_at <= $1"""
+                   WHERE (status = 'pending' OR status IS NULL) AND sent = FALSE
+                   AND REPLACE(REPLACE(remind_at, 'Z', ''), '+00:00', '') <= $1"""
         params: list[Any] = [now]
         if user_id:
             query += " AND user_id = $2"

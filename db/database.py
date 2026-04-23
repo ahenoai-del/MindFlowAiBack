@@ -11,6 +11,8 @@ _pool: Optional[asyncpg.Pool] = None
 
 async def init_db() -> None:
     global _pool
+    if not settings.DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is not set. Check your environment variables.")
     _pool = await asyncpg.create_pool(settings.DATABASE_URL, min_size=2, max_size=10)
 
     async with _pool.acquire() as conn:
