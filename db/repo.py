@@ -10,6 +10,16 @@ from db.models import User, Task, Plan, Stats, Gamification, Reminder, PushSubsc
 
 logger = logging.getLogger(__name__)
 
+TASK_UPDATE_FIELDS = {
+    "title",
+    "description",
+    "category",
+    "priority",
+    "deadline",
+    "estimated_minutes",
+    "status",
+}
+
 
 def _to_str(value) -> Optional[str]:
     if value is None:
@@ -281,9 +291,11 @@ class TaskRepo:
 
     @staticmethod
     async def update(task_id: int, **kwargs) -> Optional[Task]:
-        filtered = {k: v for k, v in kwargs.items() if v is not None}
+        filtered = {k: v for k, v in kwargs.items() if k in TASK_UPDATE_FIELDS}
         if not filtered:
             return await TaskRepo.get(task_id)
+        if filtered.get("deadline") == "":
+            filtered["deadline"] = None
         pool = get_pool()
         updates: list[str] = []
         values: list[Any] = []
@@ -324,6 +336,16 @@ class TaskRepo:
         pool = get_pool()
         async with pool.acquire() as conn:
             await conn.execute("DELETE FROM tasks WHERE id = $1", task_id)
+
+    @staticmethod
+    async def delete_for_user(task_id: int, user_id: int) -> bool:
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            result = await conn.execute(
+                "DELETE FROM tasks WHERE id = $1 AND user_id = $2",
+                task_id, user_id,
+            )
+            return result.endswith(" 1")
 
 
 class PlanRepo:
@@ -479,6 +501,7 @@ class GamificationRepo:
     async def add_xp(user_id: int, xp: int) -> tuple[Gamification, int, bool]:
         from db.models import get_level
 
+        current = await GamificationRepo.get_or_create(user_id)
         pool = get_pool()
         async with pool.acquire() as conn:
             await conn.execute(
@@ -487,7 +510,7 @@ class GamificationRepo:
             )
         g = await GamificationRepo.get_or_create(user_id)
         new_level = get_level(g.xp)
-        if new_level > g.level:
+        if new_level > current.level:
             pool = get_pool()
             async with pool.acquire() as conn:
                 await conn.execute(

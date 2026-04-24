@@ -133,7 +133,10 @@ async def handle_webapp_data(message: Message):
         except (ValueError, TypeError):
             await message.answer("❌ Неверный ID задачи")
             return
-        await TaskRepo.delete(task_id)
+        deleted = await TaskRepo.delete_for_user(task_id, message.from_user.id)
+        if not deleted:
+            await message.answer("❌ Задача не найдена")
+            return
         await message.answer("🗑 Задача удалена")
         return
 
@@ -157,6 +160,10 @@ async def handle_webapp_data(message: Message):
                 "status": data.get("status"),
             }.items() if v is not None
         }
+        existing = await TaskRepo.get(task_id)
+        if not existing or existing.user_id != message.from_user.id:
+            await message.answer("❌ Задача не найдена")
+            return
         task = await TaskRepo.update(task_id, **filtered)
         if task:
             await message.answer(f"✏️ Задача обновлена: {task.title}")

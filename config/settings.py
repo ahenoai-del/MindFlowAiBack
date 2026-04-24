@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     PROXY_URL: str = ""
     LOG_LEVEL: str = "INFO"
-    LOG_FILE: str = "logs/mindflow.log"
+    LOG_FILE: str = ""
     RATE_LIMIT_SECONDS: int = 2
     BROADCAST_BATCH_SIZE: int = 25
     BROADCAST_DELAY_SECONDS: float = 0.5

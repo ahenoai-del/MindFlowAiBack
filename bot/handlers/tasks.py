@@ -131,7 +131,7 @@ async def view_task(callback: CallbackQuery):
         return
 
     task = await TaskRepo.get(task_id)
-    if not task:
+    if not task or task.user_id != callback.from_user.id:
         await callback.answer("Задача не найдена")
         return
 
@@ -190,7 +190,10 @@ async def delete_task(callback: CallbackQuery):
     except (ValueError, IndexError):
         await callback.answer("Неверный ID")
         return
-    await TaskRepo.delete(task_id)
+    deleted = await TaskRepo.delete_for_user(task_id, callback.from_user.id)
+    if not deleted:
+        await callback.answer("Задача не найдена")
+        return
     await callback.answer("🗑 Задача удалена")
     try:
         await callback.message.delete()
@@ -221,7 +224,7 @@ async def edit_task_start(callback: CallbackQuery, state: FSMContext):
         return
 
     task = await TaskRepo.get(task_id)
-    if not task:
+    if not task or task.user_id != callback.from_user.id:
         await callback.answer("Задача не найдена")
         return
 
@@ -253,6 +256,9 @@ async def edit_field_title(callback: CallbackQuery, state: FSMContext):
     await state.update_data(task_id=task_id, field="title")
     await state.set_state(TaskEditStates.waiting_title)
     task = await TaskRepo.get(task_id)
+    if not task or task.user_id != callback.from_user.id:
+        await callback.answer("Задача не найдена")
+        return
     await callback.message.edit_text(
         f"📝 <b>Изменение названия</b>\n\nТекущее: {task.title}\n\nНапиши новое название:",
         reply_markup=get_back_button(),
@@ -269,6 +275,9 @@ async def edit_field_desc(callback: CallbackQuery, state: FSMContext):
     await state.update_data(task_id=task_id, field="description")
     await state.set_state(TaskEditStates.waiting_description)
     task = await TaskRepo.get(task_id)
+    if not task or task.user_id != callback.from_user.id:
+        await callback.answer("Задача не найдена")
+        return
     await callback.message.edit_text(
         f"📋 <b>Изменение описания</b>\n\nТекущее: {task.description or 'не указано'}\n\n"
         "Напиши новое описание или /clear чтобы очистить:",
@@ -286,6 +295,9 @@ async def edit_field_deadline(callback: CallbackQuery, state: FSMContext):
     await state.update_data(task_id=task_id, field="deadline")
     await state.set_state(TaskEditStates.waiting_deadline)
     task = await TaskRepo.get(task_id)
+    if not task or task.user_id != callback.from_user.id:
+        await callback.answer("Задача не найдена")
+        return
     await callback.message.edit_text(
         f"📅 <b>Изменение дедлайна</b>\n\nТекущий: {task.deadline or 'не указан'}\n\n"
         "Напиши дату в формате ГГГГ-ММ-ДД или /clear чтобы убрать:",
@@ -301,6 +313,9 @@ async def edit_field_priority(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка")
         return
     task = await TaskRepo.get(task_id)
+    if not task or task.user_id != callback.from_user.id:
+        await callback.answer("Задача не найдена")
+        return
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔴 Высокий", callback_data=f"set_priority_1_{task_id}")],
         [InlineKeyboardButton(text="🟡 Средний", callback_data=f"set_priority_2_{task_id}")],
@@ -322,6 +337,10 @@ async def set_priority(callback: CallbackQuery):
     except (ValueError, IndexError):
         await callback.answer("Ошибка")
         return
+    task = await TaskRepo.get(task_id)
+    if not task or task.user_id != callback.from_user.id:
+        await callback.answer("Задача не найдена")
+        return
     await TaskRepo.update(task_id, priority=priority)
     await callback.answer("✅ Приоритет изменен")
     await _show_task_inline(callback, task_id)
@@ -335,6 +354,9 @@ async def edit_field_category(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка")
         return
     task = await TaskRepo.get(task_id)
+    if not task or task.user_id != callback.from_user.id:
+        await callback.answer("Задача не найдена")
+        return
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💼 Работа", callback_data=f"set_category_work_{task_id}")],
         [InlineKeyboardButton(text="🏠 Дом", callback_data=f"set_category_home_{task_id}")],
@@ -358,6 +380,10 @@ async def set_category(callback: CallbackQuery):
     except (ValueError, IndexError):
         await callback.answer("Ошибка")
         return
+    task = await TaskRepo.get(task_id)
+    if not task or task.user_id != callback.from_user.id:
+        await callback.answer("Задача не найдена")
+        return
     await TaskRepo.update(task_id, category=category)
     await callback.answer("✅ Категория изменена")
     await _show_task_inline(callback, task_id)
@@ -369,6 +395,11 @@ async def process_edit_title(message: Message, state: FSMContext):
     task_id = data.get("task_id")
     if not task_id:
         await state.clear()
+        return
+    task = await TaskRepo.get(task_id)
+    if not task or task.user_id != message.from_user.id:
+        await state.clear()
+        await message.answer("❌ Задача не найдена")
         return
     await TaskRepo.update(task_id, title=message.text)
     await state.clear()
@@ -383,6 +414,11 @@ async def process_edit_desc(message: Message, state: FSMContext):
     if not task_id:
         await state.clear()
         return
+    task = await TaskRepo.get(task_id)
+    if not task or task.user_id != message.from_user.id:
+        await state.clear()
+        await message.answer("❌ Задача не найдена")
+        return
     new_desc = None if message.text == "/clear" else message.text
     await TaskRepo.update(task_id, description=new_desc)
     await state.clear()
@@ -396,6 +432,11 @@ async def process_edit_deadline(message: Message, state: FSMContext):
     task_id = data.get("task_id")
     if not task_id:
         await state.clear()
+        return
+    task = await TaskRepo.get(task_id)
+    if not task or task.user_id != message.from_user.id:
+        await state.clear()
+        await message.answer("❌ Задача не найдена")
         return
     new_deadline = None if message.text == "/clear" else message.text
     await TaskRepo.update(task_id, deadline=new_deadline)

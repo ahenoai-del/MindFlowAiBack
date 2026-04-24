@@ -11,6 +11,8 @@ _pool: Optional[asyncpg.Pool] = None
 
 async def init_db() -> None:
     global _pool
+    if _pool is not None:
+        return
     if not settings.DATABASE_URL:
         raise RuntimeError("DATABASE_URL is not set. Check your environment variables.")
     _pool = await asyncpg.create_pool(settings.DATABASE_URL, min_size=2, max_size=10)
@@ -100,11 +102,18 @@ async def init_db() -> None:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 id BIGSERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(id),
+                user_id BIGINT NOT NULL UNIQUE REFERENCES users(id),
                 subscription_json TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        """)
+
+        await conn.execute("""
+            DELETE FROM push_subscriptions a
+            USING push_subscriptions b
+            WHERE a.user_id = b.user_id
+              AND a.id < b.id
         """)
 
         indexes = [
@@ -117,6 +126,7 @@ async def init_db() -> None:
             "CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status, remind_at)",
             "CREATE INDEX IF NOT EXISTS idx_gamification_user ON gamification(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_push_subs_user_unique ON push_subscriptions(user_id)",
         ]
         for idx in indexes:
             await conn.execute(idx)
