@@ -79,9 +79,14 @@ async def run_api() -> None:
 
 async def main() -> None:
     setup_logging(log_level=settings.LOG_LEVEL, log_file=settings.LOG_FILE)
+    run_mode = os.environ.get("RUN_MODE", "").strip().lower()
+    if not run_mode:
+        run_mode = "both" if os.environ.get("RUN_API", "").lower() == "true" else "bot"
+
     logger.info("Starting MindFlow...")
     logger.info("DATABASE_URL set: %s", bool(settings.DATABASE_URL))
     logger.info("BOT_TOKEN set: %s", bool(settings.BOT_TOKEN))
+    logger.info("RUN_MODE: %s", run_mode)
     try:
         await init_db()
         logger.info("Database connected successfully")
@@ -89,12 +94,17 @@ async def main() -> None:
         logger.critical("Failed to connect to database: %s", e, exc_info=True)
         raise
 
-    if os.environ.get("RUN_API") == "true":
+    if run_mode == "api":
+        logger.info("Running API only mode")
+        await run_api()
+    elif run_mode == "both":
         logger.info("Running bot + API mode")
         await asyncio.gather(run_bot(), run_api())
-    else:
+    elif run_mode == "bot":
         logger.info("Running bot only mode")
         await run_bot()
+    else:
+        raise RuntimeError("RUN_MODE must be one of: bot, api, both")
 
 
 if __name__ == "__main__":

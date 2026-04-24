@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from db import UserRepo, TaskRepo, GamificationRepo, StatsRepo, init_db, close_db
+from db import ACHIEVEMENTS, UserRepo, TaskRepo, GamificationRepo, StatsRepo, init_db, close_db
 from config.settings import settings
 from services.push_service import PushService
 from services.reminder_service import ReminderService
@@ -130,6 +130,26 @@ async def check_premium(user_id: int):
     return {"is_premium": user.is_premium_active, "premium_until": user.premium_until}
 
 
+@app.get("/api/user/{user_id}/achievements")
+async def get_user_achievements(user_id: int):
+    await UserRepo.create(user_id)
+    unlocked = set(await GamificationRepo.get_achievements(user_id))
+    return {
+        "unlocked": list(unlocked),
+        "items": [
+            {
+                "id": achievement_id,
+                "name": achievement["name"],
+                "description": achievement["description"],
+                "icon": achievement["icon"],
+                "xp": achievement["xp"],
+                "unlocked": achievement_id in unlocked,
+            }
+            for achievement_id, achievement in ACHIEVEMENTS.items()
+        ],
+    }
+
+
 @app.get("/api/vapid-public-key")
 async def get_vapid_public_key():
     if not PushService.is_configured():
@@ -244,6 +264,7 @@ async def get_reminders(user_id: int):
 
 @app.post("/api/reminders/{user_id}")
 async def create_reminder(user_id: int, reminder: ReminderCreate):
+    await UserRepo.create(user_id)
     new_reminder = await ReminderService.create(
         user_id=user_id, remind_at=reminder.remind_at,
         task_id=reminder.task_id, text=reminder.text,
@@ -253,7 +274,9 @@ async def create_reminder(user_id: int, reminder: ReminderCreate):
         raise HTTPException(status_code=500, detail="Failed to create reminder")
     return {
         "id": new_reminder.id, "remind_at": new_reminder.remind_at,
-        "status": "created",
+        "task_id": new_reminder.task_id, "text": new_reminder.text,
+        "status": new_reminder.status, "repeat_interval": new_reminder.repeat_interval,
+        "created_at": new_reminder.created_at,
     }
 
 
