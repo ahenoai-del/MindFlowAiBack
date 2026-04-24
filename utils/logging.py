@@ -3,8 +3,8 @@ import os
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logging(log_level: str = "INFO", log_file: str = "logs/mindflow.log") -> None:
-    log_dir = os.path.dirname(log_file)
+def setup_logging(log_level: str = "INFO", log_file: str = "") -> None:
+    log_dir = os.path.dirname(log_file) if log_file else ""
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
 
@@ -21,12 +21,13 @@ def setup_logging(log_level: str = "INFO", log_file: str = "logs/mindflow.log") 
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 
-    file_handler = RotatingFileHandler(
-        log_file, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
-    )
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    root_logger.addHandler(file_handler)
+    if log_file:
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+        )
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
 
     logging.getLogger("aiogram").setLevel(logging.WARNING)
     logging.getLogger("apscheduler").setLevel(logging.WARNING)

@@ -21,19 +21,23 @@ def setup_scheduler(bot: Bot) -> None:
         IntervalTrigger(minutes=5),
         args=[bot],
         id="scheduled_messages",
+        replace_existing=True,
     )
     scheduler.add_job(
         send_reminders,
         IntervalTrigger(minutes=1),
         args=[bot],
         id="send_reminders",
+        replace_existing=True,
     )
     scheduler.add_job(
         expire_premium_users,
         IntervalTrigger(hours=6),
         id="expire_premium",
+        replace_existing=True,
     )
-    scheduler.start()
+    if not scheduler.running:
+        scheduler.start()
 
 
 async def send_scheduled_messages(bot: Bot) -> None:

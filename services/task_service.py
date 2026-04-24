@@ -45,7 +45,7 @@ class TaskService:
     @staticmethod
     async def complete_task(user_id: int, task_id: int) -> Optional[dict]:
         task = await TaskRepo.get(task_id)
-        if not task:
+        if not task or task.user_id != user_id:
             return None
 
         completed = await TaskRepo.complete(task_id)

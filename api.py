@@ -2,15 +2,16 @@ import hmac
 import hashlib
 import json
 import logging
+from contextlib import asynccontextmanager
+from urllib.parse import parse_qsl
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 
-from db import UserRepo, TaskRepo, GamificationRepo, ReminderRepo, StatsRepo, PushSubscriptionRepo
+from db import UserRepo, TaskRepo, GamificationRepo, StatsRepo, init_db, close_db
 from config.settings import settings
 from services.push_service import PushService
 from services.reminder_service import ReminderService
@@ -18,7 +19,17 @@ from services.voice_service import VoiceService
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="MindFlow API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    try:
+        yield
+    finally:
+        await close_db()
+
+
+app = FastAPI(title="MindFlow API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,14 +42,14 @@ app.add_middleware(
 
 def verify_telegram_webapp(init_data: str) -> Optional[dict]:
     try:
-        params = dict(pair.split("=") for pair in init_data.split("&"))
+        params = dict(parse_qsl(init_data, keep_blank_values=True, strict_parsing=True))
         hash_value = params.pop("hash", None)
         if not hash_value:
             return None
         data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
         secret_key = hmac.new(
-            settings.BOT_TOKEN.encode(),
             b"WebAppData",
+            settings.BOT_TOKEN.encode(),
             hashlib.sha256,
         ).digest()
         computed_hash = hmac.new(
@@ -46,7 +57,7 @@ def verify_telegram_webapp(init_data: str) -> Optional[dict]:
             data_check_string.encode(),
             hashlib.sha256,
         ).hexdigest()
-        if computed_hash == hash_value:
+        if hmac.compare_digest(computed_hash, hash_value):
             user_data = params.get("user")
             if user_data:
                 return json.loads(user_data)
@@ -57,19 +68,19 @@ def verify_telegram_webapp(init_data: str) -> Optional[dict]:
 
 
 class TaskCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=500)
     description: Optional[str] = None
     category: str = "general"
-    priority: int = 2
+    priority: int = Field(default=2, ge=1, le=3)
     deadline: Optional[str] = None
-    estimated_minutes: Optional[int] = None
+    estimated_minutes: Optional[int] = Field(default=None, ge=1)
 
 
 class TaskUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=500)
     description: Optional[str] = None
     category: Optional[str] = None
-    priority: Optional[int] = None
+    priority: Optional[int] = Field(default=None, ge=1, le=3)
     deadline: Optional[str] = None
     status: Optional[str] = None
 
@@ -82,7 +93,7 @@ class ReminderCreate(BaseModel):
 
 
 class ReminderSnooze(BaseModel):
-    minutes: int = 10
+    minutes: int = Field(default=10, ge=1, le=1440)
 
 
 class PushSubscriptionCreate(BaseModel):
@@ -169,8 +180,17 @@ async def create_task(user_id: int, task: TaskCreate):
 
 
 @app.patch("/api/tasks/{task_id}")
-async def update_task(task_id: int, task: TaskUpdate):
-    updates = {k: v for k, v in task.model_dump().items() if v is not None}
+async def update_task(task_id: int, task: TaskUpdate, user_id: int = Query(...)):
+    existing = await TaskRepo.get(task_id)
+    if not existing or existing.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Task not found")
+    raw_updates = task.model_dump(exclude_unset=True)
+    updates = {}
+    for key, value in raw_updates.items():
+        if key in {"description", "deadline"}:
+            updates[key] = value
+        elif value is not None:
+            updates[key] = value
     if not updates:
         raise HTTPException(status_code=400, detail="No updates provided")
     updated = await TaskRepo.update(task_id, **updates)
@@ -180,7 +200,10 @@ async def update_task(task_id: int, task: TaskUpdate):
 
 
 @app.post("/api/tasks/{task_id}/complete")
-async def complete_task(task_id: int):
+async def complete_task(task_id: int, user_id: int = Query(...)):
+    existing = await TaskRepo.get(task_id)
+    if not existing or existing.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     task = await TaskRepo.complete(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -188,7 +211,10 @@ async def complete_task(task_id: int):
 
 
 @app.post("/api/tasks/{task_id}/uncomplete")
-async def uncomplete_task(task_id: int):
+async def uncomplete_task(task_id: int, user_id: int = Query(...)):
+    existing = await TaskRepo.get(task_id)
+    if not existing or existing.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Task not found")
     task = await TaskRepo.uncomplete(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -196,8 +222,10 @@ async def uncomplete_task(task_id: int):
 
 
 @app.delete("/api/tasks/{task_id}")
-async def delete_task(task_id: int):
-    await TaskRepo.delete(task_id)
+async def delete_task(task_id: int, user_id: int = Query(...)):
+    deleted = await TaskRepo.delete_for_user(task_id, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Task not found")
     return {"status": "deleted"}
 
 
