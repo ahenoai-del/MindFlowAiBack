@@ -60,6 +60,8 @@ async def on_successful_payment(message: Message):
             webapp_url = settings.WEBAPP_URL + ("&" if "?" in settings.WEBAPP_URL else "?") + "premium=1"
             if settings.API_URL:
                 webapp_url += f"&api_url={settings.API_URL}"
+            if settings.BOT_USERNAME:
+                webapp_url += f"&bot_username={settings.BOT_USERNAME.lstrip('@')}"
             kb = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [

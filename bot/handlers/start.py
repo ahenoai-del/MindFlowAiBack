@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlencode
 
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
@@ -158,15 +159,17 @@ async def _build_webapp_url(user_id: int) -> str:
     if not settings.WEBAPP_URL:
         return ""
     url = settings.WEBAPP_URL
-    params: list[str] = []
+    params: dict[str, str] = {}
     is_premium = await UserService.is_premium(user_id)
     if is_premium:
-        params.append("premium=1")
+        params["premium"] = "1"
     if settings.API_URL:
-        params.append(f"api_url={settings.API_URL}")
+        params["api_url"] = settings.API_URL
+    if settings.BOT_USERNAME:
+        params["bot_username"] = settings.BOT_USERNAME.lstrip("@")
     if params:
         separator = "&" if "?" in url else "?"
-        url += separator + "&".join(params)
+        url += separator + urlencode(params)
     return url
 
 
