@@ -4,6 +4,7 @@ from typing import List, Optional
 
 class Settings(BaseSettings):
     BOT_TOKEN: str
+    BOT_USERNAME: str = ""
     OPENAI_API_KEY: str = ""
     AI_PROVIDER: str = "openai"
     AI_MODEL: str = ""
